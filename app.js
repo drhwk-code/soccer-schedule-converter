@@ -124,9 +124,7 @@ async function processFiles(files) {
                 leagueName: '',
                 notesUrl: '',
                 arrivalTime: '',
-                uniformDefault: '',
-                uniformHomeOverride: '',
-                uniformAwayOverride: ''
+                uniformDefault: ''
             }
         });
     }
@@ -498,20 +496,6 @@ function updateFilesList() {
                             <option value="away" ${file.options.uniformDefault === 'away' ? 'selected' : ''}>Always Away</option>
                         </select>
                     </div>
-                    <div class="option-group">
-                        <label>Home Uniform Override</label>
-                        <input type="text"
-                            value="${escapeHtml(file.options.uniformHomeOverride)}"
-                            placeholder="Leave blank to use global"
-                            oninput="updateFileOption(${index}, 'uniformHomeOverride', this.value)">
-                    </div>
-                    <div class="option-group">
-                        <label>Away Uniform Override</label>
-                        <input type="text"
-                            value="${escapeHtml(file.options.uniformAwayOverride)}"
-                            placeholder="Leave blank to use global"
-                            oninput="updateFileOption(${index}, 'uniformAwayOverride', this.value)">
-                    </div>
                 </div>
             </div>
         </div>
@@ -532,11 +516,7 @@ function getProcessedEvents() {
 
     for (const file of state.files) {
         const { leagueName: tournamentName, notesUrl: urlValue, arrivalTime: arrivalTimeValue,
-                uniformDefault, uniformHomeOverride, uniformAwayOverride } = file.options;
-
-        // Determine which uniform values to use (file override or global)
-        const effectiveHomeUniform = uniformHomeOverride.trim() || homeUniformValue;
-        const effectiveAwayUniform = uniformAwayOverride.trim() || awayUniformValue;
+                uniformDefault } = file.options;
 
         for (const event of file.events) {
             const exportEvent = { ...event };
@@ -575,10 +555,10 @@ function getProcessedEvents() {
                     homeAway = 'away';
                 }
 
-                if (homeAway === 'home' && effectiveHomeUniform) {
-                    exportEvent['Uniform'] = effectiveHomeUniform;
-                } else if (homeAway === 'away' && effectiveAwayUniform) {
-                    exportEvent['Uniform'] = effectiveAwayUniform;
+                if (homeAway === 'home' && homeUniformValue) {
+                    exportEvent['Uniform'] = homeUniformValue;
+                } else if (homeAway === 'away' && awayUniformValue) {
+                    exportEvent['Uniform'] = awayUniformValue;
                 }
             }
 
