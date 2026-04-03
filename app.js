@@ -233,21 +233,24 @@ function extractEvents(parsed) {
 
 function mapColumns(headers) {
     const map = {};
+    const usedColumns = new Set();
     const lowerHeaders = headers.map(h => h.toLowerCase().trim());
 
     for (const [teamsnapCol, patterns] of Object.entries(COLUMN_MAPPINGS)) {
         // First try exact match
-        const exactIdx = lowerHeaders.findIndex(h => patterns.includes(h));
+        const exactIdx = lowerHeaders.findIndex((h, idx) => !usedColumns.has(idx) && patterns.includes(h));
         if (exactIdx >= 0) {
             map[teamsnapCol] = headers[exactIdx];
+            usedColumns.add(exactIdx);
             continue;
         }
 
-        // Then try partial match
+        // Then try partial match - only match if header contains pattern (not reverse)
         for (const pattern of patterns) {
-            const partialIdx = lowerHeaders.findIndex(h => h.includes(pattern) || pattern.includes(h));
+            const partialIdx = lowerHeaders.findIndex((h, idx) => !usedColumns.has(idx) && h.includes(pattern));
             if (partialIdx >= 0) {
                 map[teamsnapCol] = headers[partialIdx];
+                usedColumns.add(partialIdx);
                 break;
             }
         }
@@ -295,7 +298,31 @@ function normalizeEvent(event) {
         // It's a practice/event - no opponent
         event['Name'] = 'Practice';
     }
+
+    // Guardrail: Clear Location Address/Details if they just duplicate Location Name
+    const locationName = (event['Location Name'] || '').trim().toLowerCase();
+    if (locationName) {
+        const locationAddr = (event['Location Address'] || '').trim().toLowerCase();
+        const locationDetails = (event['Location Details'] || '').trim().toLowerCase();
+
+        // If Location Address is same as Location Name or doesn't look like an address, clear it
+        if (locationAddr && (locationAddr === locationName || !looksLikeAddress(locationAddr))) {
+            event['Location Address'] = '';
+        }
+
+        // If Location Details is same as Location Name, clear it
+        if (locationDetails && locationDetails === locationName) {
+            event['Location Details'] = '';
+        }
+    }
 }
+
+function looksLikeAddress(str) {
+    // An address typically contains: numbers, commas, or words like st/street/ave/rd/dr/way/ln/blvd
+    const hasNumber = /\d/.test(str);
+    const hasComma = str.includes(',');
+    const hasStreetWord = /\b(st|street|ave|avenue|rd|road|dr|drive|way|ln|lane|blvd|boulevard|ct|court|pl|place|cir|circle)\b/i.test(str);
+    return hasNumber || hasComma || hasStreetWord;
 
 function normalizeDate(dateStr) {
     if (!dateStr) return '';
