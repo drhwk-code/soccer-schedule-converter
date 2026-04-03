@@ -265,6 +265,11 @@ function normalizeEvent(event) {
         event['Duration (HH:MM)'] = normalizeDuration(event['Duration (HH:MM)']);
     }
 
+    // Normalize arrival time to integer minutes
+    if (event['Arrival Time (Minutes)']) {
+        event['Arrival Time (Minutes)'] = normalizeArrivalTime(event['Arrival Time (Minutes)']);
+    }
+
     // Normalize home/away
     if (event['Home or Away']) {
         const ha = event['Home or Away'].toLowerCase().trim();
@@ -378,6 +383,31 @@ function normalizeDuration(durationStr) {
     }
 
     return durationStr;
+}
+
+function normalizeArrivalTime(arrivalStr) {
+    if (!arrivalStr) return '';
+
+    const str = String(arrivalStr).toLowerCase().trim();
+
+    // Already a plain integer
+    if (/^\d+$/.test(str)) {
+        return str;
+    }
+
+    // Extract number from strings like "30 min", "30 minutes", etc.
+    const minMatch = str.match(/(\d+)\s*(min|minutes?)?/);
+    if (minMatch) {
+        return minMatch[1];
+    }
+
+    // Try to parse as a number
+    const num = parseInt(str);
+    if (!isNaN(num)) {
+        return String(num);
+    }
+
+    return '';
 }
 
 function combineEvents() {
@@ -528,9 +558,12 @@ function exportCSV() {
                 exportEvent['Notes'] = urlValue;
             }
 
-            // Set Arrival Time if provided
+            // Set Arrival Time if provided (must be integer minutes)
             if (arrivalTimeValue) {
-                exportEvent['Arrival Time (Minutes)'] = arrivalTimeValue;
+                const minutes = parseInt(arrivalTimeValue);
+                if (!isNaN(minutes)) {
+                    exportEvent['Arrival Time (Minutes)'] = String(minutes);
+                }
             }
 
             // Set Uniform based on Home/Away for games
