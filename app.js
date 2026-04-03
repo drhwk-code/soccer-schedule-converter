@@ -67,10 +67,16 @@ const practiceCount = document.getElementById('practiceCount');
 dropZone.addEventListener('dragover', handleDragOver);
 dropZone.addEventListener('dragleave', handleDragLeave);
 dropZone.addEventListener('drop', handleDrop);
-dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('click', (e) => {
+    // Prevent double-triggering when clicking on the label/button
+    if (e.target.closest('.browse-btn')) return;
+    fileInput.click();
+});
 fileInput.addEventListener('change', handleFileSelect);
 clearBtn.addEventListener('click', clearAll);
 exportBtn.addEventListener('click', exportCSV);
+homeUniform.addEventListener('input', updatePreview);
+awayUniform.addEventListener('input', updatePreview);
 
 function handleDragOver(e) {
     e.preventDefault();
@@ -117,7 +123,10 @@ async function processFiles(files) {
             options: {
                 leagueName: '',
                 notesUrl: '',
-                arrivalTime: ''
+                arrivalTime: '',
+                uniformDefault: '',
+                uniformHomeOverride: '',
+                uniformAwayOverride: ''
             }
         });
     }
@@ -340,9 +349,10 @@ function normalizeDuration(durationStr) {
 
     const str = durationStr.toLowerCase().trim();
 
-    // Already in HH:MM format
+    // Already in HH:MM format - strip leading zero from hours
     if (/^\d{1,2}:\d{2}$/.test(str)) {
-        return str;
+        const [hours, mins] = str.split(':');
+        return `${parseInt(hours)}:${mins}`;
     }
 
     let totalMinutes = 0;
@@ -461,14 +471,14 @@ function updateFilesList() {
                         <input type="text"
                             value="${escapeHtml(file.options.leagueName)}"
                             placeholder="Flight 3 Metro Blue GU12"
-                            onchange="updateFileOption(${index}, 'leagueName', this.value)">
+                            oninput="updateFileOption(${index}, 'leagueName', this.value)">
                     </div>
                     <div class="option-group">
                         <label>League/Tournament URL</label>
                         <input type="url"
                             value="${escapeHtml(file.options.notesUrl)}"
                             placeholder="https://bays.org/section/8484"
-                            onchange="updateFileOption(${index}, 'notesUrl', this.value)">
+                            oninput="updateFileOption(${index}, 'notesUrl', this.value)">
                     </div>
                     <div class="option-group option-small">
                         <label>Arrival (min)</label>
@@ -476,7 +486,31 @@ function updateFilesList() {
                             value="${escapeHtml(file.options.arrivalTime)}"
                             placeholder="30"
                             min="0"
-                            onchange="updateFileOption(${index}, 'arrivalTime', this.value)">
+                            oninput="updateFileOption(${index}, 'arrivalTime', this.value)">
+                    </div>
+                </div>
+                <div class="option-row uniform-override-row">
+                    <div class="option-group">
+                        <label>Uniform Default</label>
+                        <select onchange="updateFileOption(${index}, 'uniformDefault', this.value)">
+                            <option value="" ${file.options.uniformDefault === '' ? 'selected' : ''}>Use Home/Away</option>
+                            <option value="home" ${file.options.uniformDefault === 'home' ? 'selected' : ''}>Always Home</option>
+                            <option value="away" ${file.options.uniformDefault === 'away' ? 'selected' : ''}>Always Away</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label>Home Uniform Override</label>
+                        <input type="text"
+                            value="${escapeHtml(file.options.uniformHomeOverride)}"
+                            placeholder="Leave blank to use global"
+                            oninput="updateFileOption(${index}, 'uniformHomeOverride', this.value)">
+                    </div>
+                    <div class="option-group">
+                        <label>Away Uniform Override</label>
+                        <input type="text"
+                            value="${escapeHtml(file.options.uniformAwayOverride)}"
+                            placeholder="Leave blank to use global"
+                            oninput="updateFileOption(${index}, 'uniformAwayOverride', this.value)">
                     </div>
                 </div>
             </div>
@@ -487,22 +521,96 @@ function updateFilesList() {
 function updateFileOption(index, option, value) {
     if (state.files[index]) {
         state.files[index].options[option] = value;
+        updatePreview();
     }
 }
 
+function getProcessedEvents() {
+    const processed = [];
+    const homeUniformValue = homeUniform.value.trim();
+    const awayUniformValue = awayUniform.value.trim();
+
+    for (const file of state.files) {
+        const { leagueName: tournamentName, notesUrl: urlValue, arrivalTime: arrivalTimeValue,
+                uniformDefault, uniformHomeOverride, uniformAwayOverride } = file.options;
+
+        // Determine which uniform values to use (file override or global)
+        const effectiveHomeUniform = uniformHomeOverride.trim() || homeUniformValue;
+        const effectiveAwayUniform = uniformAwayOverride.trim() || awayUniformValue;
+
+        for (const event of file.events) {
+            const exportEvent = { ...event };
+
+            // Build Extra Label: "Tournament Name - #GameNumber"
+            const gameNumber = event['Extra Label'];
+            if (tournamentName && gameNumber) {
+                exportEvent['Extra Label'] = `${tournamentName} - #${gameNumber.replace(/^#/, '')}`;
+            } else if (tournamentName) {
+                exportEvent['Extra Label'] = tournamentName;
+            } else if (gameNumber) {
+                exportEvent['Extra Label'] = `#${gameNumber.replace(/^#/, '')}`;
+            }
+
+            // Add URL to Notes
+            if (urlValue) {
+                exportEvent['Notes'] = urlValue;
+            }
+
+            // Set Arrival Time if provided (must be integer minutes)
+            if (arrivalTimeValue) {
+                const minutes = parseInt(arrivalTimeValue);
+                if (!isNaN(minutes)) {
+                    exportEvent['Arrival Time (Minutes)'] = String(minutes);
+                }
+            }
+
+            // Set Uniform based on Home/Away for games
+            if (event['Name'] === 'Game') {
+                let homeAway = (event['Home or Away'] || '').toLowerCase();
+
+                // Apply uniform default override
+                if (uniformDefault === 'home') {
+                    homeAway = 'home';
+                } else if (uniformDefault === 'away') {
+                    homeAway = 'away';
+                }
+
+                if (homeAway === 'home' && effectiveHomeUniform) {
+                    exportEvent['Uniform'] = effectiveHomeUniform;
+                } else if (homeAway === 'away' && effectiveAwayUniform) {
+                    exportEvent['Uniform'] = effectiveAwayUniform;
+                }
+            }
+
+            processed.push(exportEvent);
+        }
+    }
+
+    // Sort by date and time
+    processed.sort((a, b) => {
+        const dateA = new Date(a['Date'] + ' ' + a['Time']);
+        const dateB = new Date(b['Date'] + ' ' + b['Time']);
+        return dateA - dateB;
+    });
+
+    return processed;
+}
+
 function updatePreview() {
-    // Header
+    const processed = getProcessedEvents();
+
+    // Header - show all columns
     previewHead.innerHTML = `
         <tr>
-            ${TEAMSNAP_COLUMNS.slice(0, 8).map(col => `<th>${escapeHtml(col)}</th>`).join('')}
+            ${TEAMSNAP_COLUMNS.map(col => `<th>${escapeHtml(col)}</th>`).join('')}
         </tr>
     `;
 
-    // Body - show first 50 rows
-    const previewRows = state.events.slice(0, 50);
+    // Body - show first 50 rows with all columns
+    const previewRows = processed.slice(0, 50);
     previewBody.innerHTML = previewRows.map(event => `
         <tr>
-            ${TEAMSNAP_COLUMNS.slice(0, 8).map(col => `<td>${escapeHtml(event[col] || '')}</td>`).join('')}
+            ${TEAMSNAP_COLUMNS.map(col => `<td>${escapeHtml(event[col] || '')}</td>`).join('')}
         </tr>
     `).join('');
 }
@@ -533,52 +641,11 @@ function clearAll() {
 
 function exportCSV() {
     const rows = [TEAMSNAP_COLUMNS];
-    const homeUniformValue = homeUniform.value.trim();
-    const awayUniformValue = awayUniform.value.trim();
+    const processed = getProcessedEvents();
 
-    // Process each file with its own options
-    for (const file of state.files) {
-        const { leagueName: tournamentName, notesUrl: urlValue, arrivalTime: arrivalTimeValue } = file.options;
-
-        for (const event of file.events) {
-            const exportEvent = { ...event };
-
-            // Build Extra Label: "Tournament Name - #GameNumber"
-            const gameNumber = event['Extra Label'];
-            if (tournamentName && gameNumber) {
-                exportEvent['Extra Label'] = `${tournamentName} - #${gameNumber.replace(/^#/, '')}`;
-            } else if (tournamentName) {
-                exportEvent['Extra Label'] = tournamentName;
-            } else if (gameNumber) {
-                exportEvent['Extra Label'] = `#${gameNumber.replace(/^#/, '')}`;
-            }
-
-            // Add URL to Notes
-            if (urlValue) {
-                exportEvent['Notes'] = urlValue;
-            }
-
-            // Set Arrival Time if provided (must be integer minutes)
-            if (arrivalTimeValue) {
-                const minutes = parseInt(arrivalTimeValue);
-                if (!isNaN(minutes)) {
-                    exportEvent['Arrival Time (Minutes)'] = String(minutes);
-                }
-            }
-
-            // Set Uniform based on Home/Away for games
-            if (event['Name'] === 'Game') {
-                const homeAway = (event['Home or Away'] || '').toLowerCase();
-                if (homeAway === 'home' && homeUniformValue) {
-                    exportEvent['Uniform'] = homeUniformValue;
-                } else if (homeAway === 'away' && awayUniformValue) {
-                    exportEvent['Uniform'] = awayUniformValue;
-                }
-            }
-
-            const row = TEAMSNAP_COLUMNS.map(col => exportEvent[col] || '');
-            rows.push(row);
-        }
+    for (const event of processed) {
+        const row = TEAMSNAP_COLUMNS.map(col => event[col] || '');
+        rows.push(row);
     }
 
     const csv = rows.map(row =>
