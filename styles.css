@@ -1,20 +1,39 @@
 /* CSS Variables matching wellesleysoccer.org design */
 :root {
+    /* Wellesley Soccer Program Colors */
+    --color-intown: #0057b8;
+    --color-bays: #228b22;
+    --color-premier: #d4af37;
+    --color-wdp: #ff7a00;
+    --color-topsoccer: #800080;
+    --color-futsal: #008080;
+    --color-referees: #4a6572;
+
+    /* Primary - using BAYS green for schedule tool */
     --color-primary: #228b22;
     --color-primary-dark: #1a6b1a;
     --color-primary-light: #2ea52e;
-    --color-secondary: #0057B8;
+
+    /* Secondary - In-Town blue */
+    --color-secondary: #0057b8;
+
+    /* Accent - Premier gold */
     --color-accent: #d4af37;
-    --color-text: #333;
-    --color-text-light: #666;
-    --color-text-muted: #999;
-    --color-bg: #f8f9fa;
+
+    /* Text & Background */
+    --color-text: #000;
+    --color-text-light: #333;
+    --color-text-muted: #666;
+    --color-bg: #fff;
     --color-white: #fff;
     --color-border: #ddd;
     --color-border-light: #e8e8e8;
+
+    /* Effects */
     --border-radius: 6px;
-    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.08);
-    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --hover-bg: rgba(0, 0, 0, 0.05);
     --transition: 0.2s ease;
 }
 
@@ -26,7 +45,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: var(--color-bg);
+    background: var(--color-white);
     color: var(--color-text);
     line-height: 1.6;
     min-height: 100vh;
@@ -79,7 +98,7 @@ header p {
 .drop-zone:hover,
 .drop-zone.dragover {
     border-color: var(--color-primary);
-    background: rgba(34, 139, 34, 0.05);
+    background: var(--hover-bg);
     box-shadow: var(--shadow-sm);
 }
 
@@ -170,7 +189,7 @@ header p {
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    background: rgba(34, 139, 34, 0.08);
+    background: var(--hover-bg);
     border-bottom: 1px solid var(--color-border-light);
 }
 
@@ -333,9 +352,9 @@ header p {
 
 .preview-info span {
     padding: 0.3rem 0.75rem;
-    background: rgba(34, 139, 34, 0.1);
-    color: var(--color-primary-dark);
-    border: 1px solid var(--color-primary);
+    background: var(--color-white);
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
     border-radius: var(--border-radius);
     font-weight: 500;
 }
@@ -365,7 +384,7 @@ header p {
 }
 
 #previewTable th {
-    background: rgba(34, 139, 34, 0.08);
+    background: var(--hover-bg);
     font-weight: 600;
     color: var(--color-text);
     position: sticky;
@@ -376,7 +395,7 @@ header p {
 }
 
 #previewTable tbody tr:hover {
-    background: rgba(0, 0, 0, 0.02);
+    background: var(--hover-bg);
 }
 
 #previewTable tbody tr:last-child td {
@@ -426,8 +445,9 @@ header p {
 }
 
 .btn-secondary:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--hover-bg);
     border-color: var(--color-text-muted);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-small {
