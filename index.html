@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soccer Schedule Converter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Soccer Schedule Converter</h1>
+            <p>Upload CSV files containing games or practices and export to TeamSnap format</p>
+        </header>
+
+        <main>
+            <section class="upload-section">
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone-content">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p class="drop-text">Drag & drop CSV files here</p>
+                        <p class="drop-subtext">or</p>
+                        <label class="browse-btn">
+                            Browse Files
+                            <input type="file" id="fileInput" multiple accept=".csv" hidden>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="files-section" id="filesSection" hidden>
+                <h2>Uploaded Files</h2>
+                <div id="filesList"></div>
+            </section>
+
+            <section class="options-section" id="uniformSection">
+                <h2>Uniform Options</h2>
+                <div class="options-grid">
+                    <div class="uniform-row">
+                        <div class="option-group">
+                            <label for="homeUniform">Home Uniform</label>
+                            <input type="text" id="homeUniform" placeholder="White / Light">
+                        </div>
+                        <div class="option-group">
+                            <label for="awayUniform">Away Uniform</label>
+                            <input type="text" id="awayUniform" placeholder="Blue / Dark">
+                        </div>
+                    </div>
+                    <p class="option-hint">Uniforms are applied to games based on Home/Away designation</p>
+                </div>
+            </section>
+
+            <section class="preview-section" id="previewSection" hidden>
+                <h2>Combined Schedule Preview</h2>
+                <div class="preview-info">
+                    <span id="eventCount">0 events</span>
+                    <span id="gameCount">0 games</span>
+                    <span id="practiceCount">0 practices</span>
+                </div>
+                <div class="table-wrapper">
+                    <table id="previewTable">
+                        <thead id="previewHead"></thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="actions-section" id="actionsSection" hidden>
+                <button class="btn btn-secondary" id="clearBtn">Clear All</button>
+                <button class="btn btn-primary" id="exportBtn">Export to TeamSnap CSV</button>
+            </section>
+        </main>
+
+        <footer>
+            <p>Output format matches TeamSnap schedule import template</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
